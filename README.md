@@ -7,6 +7,10 @@ Full-stack LMS with role-based access control, course management, student enroll
 **Testing:** Jest + Supertest (API), Playwright (E2E)
 **Deployment:** Render (free tier)
 
+**Live:** https://lsm-fy53.onrender.com | **API Docs:** https://lsm-fy53.onrender.com/api/docs
+
+> Free tier — first request may take 30-60s to wake up.
+
 ## Features
 
 ### Authentication & Authorization
