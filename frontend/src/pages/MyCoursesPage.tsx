@@ -7,20 +7,24 @@ import { useInstructorCourses } from '@/hooks/useCourses';
 import { EmptyState } from '@/components/common/EmptyState';
 import { CourseCard } from '@/components/course/CourseCard';
 import { CreateCourseDialog } from '@/components/course/CreateCourseDialog';
+import { useAuth } from '@/hooks/useAuth';
 
 
 export function MyCoursesPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const { data: courses, isLoading, isError, refetch } = useInstructorCourses();
+  const { isInstructor } = useAuth();
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">My Courses</h1>
-        <Button onClick={() => setDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Create Course
-        </Button>
+        {isInstructor && (
+          <Button onClick={() => setDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Course
+          </Button>
+        )}
       </div>
 
       {isLoading && (
@@ -58,10 +62,12 @@ export function MyCoursesPage() {
           title="No courses yet"
           description="Create your first course to get started"
           action={
-            <Button onClick={() => setDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create your first course
-            </Button>
+            isInstructor ? (
+              <Button onClick={() => setDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create your first course
+              </Button>
+            ) : undefined
           }
         />
       )}

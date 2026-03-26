@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router';
+import { Routes, Route, Navigate, Outlet } from 'react-router';
 import { useAuth, AuthProvider, type User } from '@/hooks/useAuth';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { LessonLayout } from '@/components/layout/LessonLayout';
@@ -74,6 +74,15 @@ function ProtectedCourseDetailRoute() {
   return <CourseDetailLayout />;
 }
 
+function RoleRoute({ allowed }: { allowed: User['role'][] }) {
+  const { user } = useAuth();
+  if (!user) return null;
+  if (!allowed.includes(user.role)) {
+    return <Navigate to={defaultLanding[user.role]} replace />;
+  }
+  return <Outlet />;
+}
+
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user } = useAuth();
 
@@ -131,12 +140,18 @@ function AppRoutes() {
         }
       />
       <Route element={<ProtectedRoute />}>
-        <Route path="/my-learning" element={<MyLearningPage />} />
-        <Route path="/my-courses" element={<MyCoursesPage />} />
-        <Route path="/my-courses/:id/edit" element={<CourseEditorPage />} />
+        <Route element={<RoleRoute allowed={['Student']} />}>
+          <Route path="/my-learning" element={<MyLearningPage />} />
+        </Route>
+        <Route element={<RoleRoute allowed={['Instructor']} />}>
+          <Route path="/my-courses" element={<MyCoursesPage />} />
+          <Route path="/my-courses/:id/edit" element={<CourseEditorPage />} />
+        </Route>
         <Route path="/courses" element={<CourseCatalogPage />} />
-        <Route path="/admin/users" element={<AdminUsersPage />} />
-        <Route path="/admin/courses" element={<AdminCoursesPage />} />
+        <Route element={<RoleRoute allowed={['Admin']} />}>
+          <Route path="/admin/users" element={<AdminUsersPage />} />
+          <Route path="/admin/courses" element={<AdminCoursesPage />} />
+        </Route>
       </Route>
       <Route element={<ProtectedCourseDetailRoute />}>
         <Route path="/courses/:id" element={<CourseDetailPage />} />
