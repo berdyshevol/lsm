@@ -8,6 +8,7 @@ skills
 # Project build and environment
 node_modules/
 .env
+.env.test
 dist/
 frontend/dist/
 backend/public/
