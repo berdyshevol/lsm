@@ -29,6 +29,10 @@ TIMEOUT_CREATE_STORY=600
 TIMEOUT_DEV_STORY=1800
 TIMEOUT_CODE_REVIEW=900
 
+# Models per step: dev-story uses sonnet, everything else uses opus
+MODEL_DEFAULT="opus"
+MODEL_DEV_STORY="sonnet"
+
 # Autonomous system prompt appended to every claude call
 AUTO_PROMPT='AUTONOMOUS MODE - NO HUMAN IN LOOP:
 - NEVER ask questions. Make best judgment for ALL decisions.
@@ -55,16 +59,78 @@ log() {
 }
 
 # =============================================================================
+# Rate limit detection and waiting
+# =============================================================================
+RATE_LIMITED=false
+
+check_rate_limit() {
+  local output="$1"
+  if echo "$output" | grep -qi "hit your limit\|rate limit\|Too many requests\|429"; then
+    return 0  # rate limited
+  fi
+  return 1  # not rate limited
+}
+
+wait_for_rate_limit_reset() {
+  local output="$1"
+
+  # Extract reset time (e.g., "resets 5am" or "resets 12pm") — macOS-compatible
+  local reset_info
+  reset_info=$(echo "$output" | grep -oE "resets [0-9]+[ap]m" | tail -1 | sed 's/resets //' ) || true
+
+  if [ -n "$reset_info" ]; then
+    local reset_hour
+    local ampm
+    reset_hour=$(echo "$reset_info" | sed 's/[ap]m//')
+    ampm=$(echo "$reset_info" | grep -oE "[ap]m")
+
+    if [ "$ampm" = "pm" ] && [ "$reset_hour" -ne 12 ]; then
+      reset_hour=$((reset_hour + 12))
+    elif [ "$ampm" = "am" ] && [ "$reset_hour" -eq 12 ]; then
+      reset_hour=0
+    fi
+
+    local current_hour
+    current_hour=$(date +"%H")
+    local current_min
+    current_min=$(date +"%M")
+
+    local wait_minutes
+    if [ "$reset_hour" -gt "$current_hour" ]; then
+      wait_minutes=$(( (reset_hour - current_hour) * 60 - current_min + 5 ))
+    else
+      wait_minutes=$(( (24 - current_hour + reset_hour) * 60 - current_min + 5 ))
+    fi
+
+    # Cap at 12 hours max, minimum 1 minute
+    if [ "$wait_minutes" -gt 720 ]; then
+      wait_minutes=720
+    elif [ "$wait_minutes" -lt 1 ]; then
+      wait_minutes=1
+    fi
+
+    log "    Rate limit detected. Reset at ${reset_info}. Sleeping ${wait_minutes} minutes..."
+    sleep "${wait_minutes}m"
+  else
+    log "    Rate limit detected. No reset time found. Sleeping 30 minutes..."
+    sleep 30m
+  fi
+
+  log "    Rate limit wait complete. Resuming..."
+}
+
+# =============================================================================
 # Run a single claude step
 # =============================================================================
 run_step() {
   local step_name="$1"
   local prompt="$2"
   local step_timeout="$3"
+  local model="${4:-$MODEL_DEFAULT}"
   local step_log="$LOG_DIR/step-$(date +"%Y%m%d-%H%M%S")-${step_name}.log"
   local retries=0
 
-  log ">>> Starting step: $step_name"
+  log ">>> Starting step: $step_name (model: $model)"
 
   while [ $retries -le $MAX_STEP_RETRIES ]; do
     if [ $retries -gt 0 ]; then
@@ -73,16 +139,25 @@ run_step() {
     fi
 
     local exit_code=0
-    timeout "$step_timeout" claude \
+    local step_output
+    step_output=$(timeout "$step_timeout" claude \
       -p "$prompt" \
       --dangerously-skip-permissions \
       --append-system-prompt "$AUTO_PROMPT" \
+      --model "$model" \
       --verbose \
-      2>&1 | tee "$step_log" || exit_code=$?
+      2>&1 | tee "$step_log") || exit_code=$?
 
     if [ $exit_code -eq 0 ]; then
       log "<<< Step $step_name completed successfully"
       return 0
+    fi
+
+    # Check if it's a rate limit — don't waste retries, just wait
+    if check_rate_limit "$step_output"; then
+      wait_for_rate_limit_reset "$step_output"
+      # Don't increment retries for rate limits — retry fresh
+      continue
     fi
 
     log "    Step $step_name failed (exit $exit_code)"
@@ -184,7 +259,8 @@ main() {
       dev-story)
         run_step "dev-story" \
           "Execute /bmad-dev-story now. Auto-discover the next ready-for-dev or in-progress story from sprint-status.yaml. Implement ALL tasks and subtasks continuously without stopping. Run all tests. Mark story as review when complete." \
-          "$TIMEOUT_DEV_STORY" || {
+          "$TIMEOUT_DEV_STORY" \
+          "$MODEL_DEV_STORY" || {
           log "ERROR: dev-story failed. Continuing..."
           continue
         }

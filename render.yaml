@@ -1,0 +1,20 @@
+services:
+  - type: web
+    runtime: node
+    name: lsm
+    plan: free
+    buildCommand: npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: lsm-db
+          property: connectionString
+
+databases:
+  - name: lsm-db
+    plan: free

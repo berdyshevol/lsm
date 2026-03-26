@@ -1,4 +1,8 @@
 {
+  "scripts": {
+    "build": "cd frontend && npm ci && npm run build && cd ../backend && npm ci && npm run build && mkdir -p public && cp -r ../frontend/dist/* public/",
+    "start": "node backend/dist/main"
+  },
   "dependencies": {
     "metaskills": "^1.0.4"
   }

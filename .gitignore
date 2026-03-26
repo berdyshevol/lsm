@@ -1,6 +1,19 @@
 _bmad
-node_modules
+_bmad-output/implementation-artifacts/
 .claude
 .agents
 .mcp.json
 skills
+
+# Project build and environment
+node_modules/
+.env
+dist/
+frontend/dist/
+backend/public/
+*.log
+
+# Test artifacts
+frontend/test-results/
+frontend/playwright-report/
+backend/coverage/
