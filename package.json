@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "build": "cd frontend && npm ci && npm run build && cd ../backend && npm ci && npm run build && mkdir -p public && cp -r ../frontend/dist/* public/",
+    "build": "cd frontend && NODE_ENV=development npm ci && npm run build && cd ../backend && NODE_ENV=development npm ci && npm run build && mkdir -p public && cp -r ../frontend/dist/* public/",
     "start": "node backend/dist/main"
   },
   "dependencies": {
