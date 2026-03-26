@@ -16,6 +16,7 @@
 - [x] `frontend/e2e/auth.spec.ts` — Auth UI flows (login form, invalid credentials, admin redirect, register, unauthenticated redirect)
 - [x] `frontend/e2e/student.spec.ts` — Student workflows (register, browse catalog, view course, enroll, navigate to lesson)
 - [x] `frontend/e2e/instructor.spec.ts` — Instructor workflows (view my courses, create course, view created course)
+- [x] `frontend/e2e/rbac.spec.ts` — RBAC coverage (route redirects, sidebar nav, public route protection, admin UI, shared routes)
 
 ## Coverage
 
@@ -39,7 +40,7 @@
 - 404 Not Found (nonexistent resources)
 - 409 Conflict (duplicate email, duplicate enrollment)
 
-### UI Features: 5/5 key workflows covered
+### UI Features: 5/5 key workflows + RBAC covered
 
 | Workflow | Covered |
 |----------|---------|
@@ -48,14 +49,30 @@
 | Student enrollment | Yes |
 | Student lesson navigation | Yes |
 | Instructor course creation | Yes |
+| RBAC route redirects (all role × route combos) | Yes |
+| RBAC sidebar navigation per role | Yes |
+| RBAC public route protection | Yes |
+| RBAC admin-only UI (user table, courses) | Yes |
+
+### RBAC Route × Role Matrix (complete)
+
+| Route | Student | Instructor | Admin |
+|-------|---------|------------|-------|
+| /my-learning | allowed | → /my-courses | → /admin/users |
+| /my-courses | → /my-learning | allowed | → /admin/users |
+| /my-courses/:id/edit | → /my-learning | allowed | → /admin/users |
+| /courses | allowed | allowed | allowed |
+| /admin/users | → /my-learning | → /my-courses | allowed |
+| /admin/courses | → /my-learning | → /my-courses | allowed |
+| /login (auth'd) | → /my-learning | → /my-courses | → /admin/users |
 
 ## Test Results
 
 | Suite | Tests | Status |
 |-------|-------|--------|
 | Backend API E2E | 59 | All passing |
-| Frontend Playwright E2E | 15 | All passing |
-| **Total** | **74** | **All passing** |
+| Frontend Playwright E2E | 37 | All passing |
+| **Total** | **96** | **All passing** |
 
 ## How to Run
 
@@ -87,7 +104,8 @@ Requires: Both backend (port 3001) and frontend (port 3000) dev servers running.
 
 ## Next Steps
 
-- Add more edge case tests for concurrent enrollment scenarios
-- Add visual regression tests for key UI components
+- Add tests for admin role change mutation (click dropdown, verify role updates)
+- Add /courses/:id detail page access tests per role
+- Add /courses/:id/lessons/:lessonId access tests per role
+- Consider testing session expiry / token invalidation redirects
 - Configure tests in CI/CD pipeline
-- Consider adding a dedicated test database to avoid polluting development data
