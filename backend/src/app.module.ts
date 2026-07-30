@@ -51,7 +51,9 @@ import { AppService } from './app.service';
     }),
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'public'),
-      exclude: ['/api/(.*)'],
+      // Express 5 (path-to-regexp v8) syntax — the older '/api/(.*)' throws on
+      // every SPA fallback request, turning deep links into 500s.
+      exclude: ['/api/{*path}'],
     }),
     AuthModule,
     UsersModule,
