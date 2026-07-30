@@ -21,6 +21,9 @@ import { AppService } from './app.service';
       envFilePath: process.env.NODE_ENV === 'test' ? '.env.test' : '.env',
       validationSchema: Joi.object({
         DATABASE_URL: Joi.string().uri().required(),
+        // Every table this app owns lives in this schema. The production
+        // database is shared with other projects, so this keeps them apart.
+        DATABASE_SCHEMA: Joi.string().default('public'),
         JWT_SECRET: Joi.string().min(16).required(),
         NODE_ENV: Joi.string()
           .valid('development', 'production', 'test')
@@ -32,20 +35,23 @@ import { AppService } from './app.service';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
         const url = new URL(config.get<string>('DATABASE_URL')!);
+        const isLocal = ['localhost', '127.0.0.1'].includes(url.hostname);
         return {
           type: 'postgres' as const,
           host: url.hostname,
           port: url.port ? parseInt(url.port, 10) : 5432,
-          username: url.username,
-          password: url.password,
+          username: decodeURIComponent(url.username),
+          password: decodeURIComponent(url.password),
           database: url.pathname.slice(1),
+          schema: config.get<string>('DATABASE_SCHEMA'),
           autoLoadEntities: true,
           synchronize: true,
           namingStrategy: new SnakeNamingStrategy(),
-          ssl:
-            config.get('NODE_ENV') === 'production'
-              ? { rejectUnauthorized: false }
-              : false,
+          // Managed Postgres (Neon) requires TLS, so key this off the host
+          // rather than NODE_ENV — otherwise a local run against the hosted
+          // database is refused before it can connect. Certificate verification
+          // stays on; Neon presents a publicly-trusted certificate.
+          ssl: isLocal ? false : true,
         };
       },
     }),

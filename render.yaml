@@ -17,3 +17,8 @@ services:
       # external Postgres (Neon) that does not expire.
       - key: DATABASE_URL
         sync: false
+      # The Neon database is shared with other projects, so this app keeps its
+      # tables in a schema of its own. Pinned here rather than in the dashboard
+      # so it cannot go missing — synchronize would then target public.
+      - key: DATABASE_SCHEMA
+        value: lsm
