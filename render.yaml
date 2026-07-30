@@ -5,16 +5,15 @@ services:
     plan: free
     buildCommand: npm run build
     startCommand: npm run start
+    healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
       - key: JWT_SECRET
         generateValue: true
+      # Managed in the Render dashboard, not here: the connection string is a
+      # secret, and Render's own free Postgres is deleted ~30 days after it is
+      # created — which is exactly what took this service down. Point this at an
+      # external Postgres (Neon) that does not expire.
       - key: DATABASE_URL
-        fromDatabase:
-          name: lsm-db
-          property: connectionString
-
-databases:
-  - name: lsm-db
-    plan: free
+        sync: false
