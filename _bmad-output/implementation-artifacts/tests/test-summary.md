@@ -102,10 +102,17 @@ Requires: Both backend (port 3001) and frontend (port 3000) dev servers running.
 - **Sequential execution**: Backend E2E tests run with `maxWorkers: 1` to avoid database race conditions.
 - **API-driven setup for Playwright**: Instructor tests use Playwright's `request` API to create and promote users before browser tests.
 
+## Known Gaps
+
+Deliberately uncovered as of this writing — listed so the suite is not read as
+covering more than it does:
+
+- **Admin role change is only checked as far as the UI.** `rbac.spec.ts` asserts the user table renders role dropdowns; nothing clicks one and verifies the role actually changes. The mutation itself is covered on the API side (`PATCH /users/:id/role`), not through the browser.
+- **No per-role access tests for `/courses/:id`.** Route guards are exercised on `/my-learning`, `/my-courses`, `/my-courses/:id/edit`, and `/admin/*`, but the course detail page is only visited in the student happy path (`student.spec.ts` → "should view course details").
+- **No per-role access tests for `/courses/:id/lessons/:lessonId`.** Same as above — lesson viewing is covered for the student flow only.
+- **Session expiry and token invalidation are untested.** Nothing asserts what happens when the 24h JWT lapses or the cookie is tampered with; unauthenticated redirects are covered, expired-session redirects are not.
+
 ## Next Steps
 
-- Add tests for admin role change mutation (click dropdown, verify role updates)
-- Add /courses/:id detail page access tests per role
-- Add /courses/:id/lessons/:lessonId access tests per role
-- Consider testing session expiry / token invalidation redirects
+- Close the gaps above
 - Configure tests in CI/CD pipeline
