@@ -11,12 +11,11 @@ services:
         value: production
       - key: JWT_SECRET
         generateValue: true
-      # Managed in the Render dashboard, not here: the connection string is a
-      # secret, and Render's own free Postgres is deleted ~30 days after it is
-      # created — which is exactly what took this service down. Point this at an
-      # external Postgres (Neon) that does not expire.
-      # Points at a database of this app's own on the shared Neon instance, so
-      # the connection string alone scopes it — no schema override to keep in
-      # sync, and synchronize cannot reach another project's tables.
+      # Points at an "lsm" database of this app's own on Neon. Kept in the
+      # Render dashboard rather than here because it is a secret.
+      #
+      # Do not replace this with a `databases:` block: Render deletes free
+      # Postgres ~30 days after creation, which is what took this service down
+      # for months. The database lives on Neon, which does not expire.
       - key: DATABASE_URL
         sync: false
