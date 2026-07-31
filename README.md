@@ -5,11 +5,16 @@ Full-stack LMS with role-based access control, course management, student enroll
 **Backend:** NestJS 11, TypeORM, PostgreSQL, JWT (httpOnly cookies), Passport.js, Swagger
 **Frontend:** React 19, React Router 7, TanStack Query 5, React Hook Form + Zod, shadcn/ui, Tailwind CSS
 **Testing:** Jest + Supertest (API), Playwright (E2E)
-**Deployment:** Render (free tier)
+**Deployment:** Vercel (frontend) + Render (API) + Neon (PostgreSQL), all free tier
 
-**Live:** https://lsm-fy53.onrender.com | **API Docs:** https://lsm-fy53.onrender.com/api/docs
+**Live:** https://lsm-demo.vercel.app — loads instantly from Vercel's CDN, with `/api/*`
+proxied through to Render.
 
-> Free tier — first request may take 30-60s to wake up.
+**Also live:** https://lsm-fy53.onrender.com — the same app served entirely by Render.
+**API docs:** https://lsm-fy53.onrender.com/api/docs
+
+> The API sleeps after 15 minutes idle on Render's free tier, so the first sign-in can take
+> 30-60s to wake it. Pages themselves are immediate on the Vercel URL.
 
 ## Features
 
@@ -156,12 +161,23 @@ cd frontend && npm run test:e2e        # headless
 cd frontend && npm run test:e2e:ui     # interactive
 ```
 
-### Deploy to Render
+### Deployment
 
-Push to GitHub and connect the repo on Render, or use the `render.yaml` blueprint:
-- Web service builds both frontend and backend, serves the SPA from `backend/public/`
-- PostgreSQL database provisioned automatically
-- JWT_SECRET auto-generated
+**Database — Neon.** Create a database and put its connection string in `DATABASE_URL`.
+Deliberately *not* a Render PostgreSQL instance: Render deletes free databases roughly 30
+days after creation, taking the whole site down with them. Do not add a `databases:` block
+back to `render.yaml`.
+
+**API — Render.** Connect the repo, or use the `render.yaml` blueprint:
+- one web service builds both halves and serves the SPA from `backend/public/`
+- `DATABASE_URL` is set in the dashboard (`sync: false`), since it is a secret
+- `JWT_SECRET` is generated automatically
+- `/api/health` is the health check path and reports database connectivity
+
+**Frontend — Vercel (optional).** Deploy the `frontend/` directory. Its `vercel.json`
+rewrites `/api/*` to the Render service, which keeps requests same-origin so the auth
+cookie works untouched. Render alone serves the full app perfectly well; Vercel just puts
+the pages on a CDN that never sleeps.
 
 ## Tech Stack
 
